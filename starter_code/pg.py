@@ -177,7 +177,8 @@ class PG(object):
       action_means = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)        # TODO 
       log_std = tf.Variable(0.0, name='log_std')             # TODO 
       self.sampled_action = tf.random_normal(tf.shape(action_means), stddev=tf.exp(log_std)) + action_means # TODO 
-      dist = tf.contrib.distributions.MultivariateNormalDiag(action_means, scale_identity_multiplier=log_std)
+      dist = tf.contrib.distributions.MultivariateNormalDiag(action_means, scale_identity_multiplier=tf.exp(log_std))
+      #self.sampled_action = dist.sample(tf.shape(action_means.shape[0], self.action_dim))
       self.logprob = dist.log_prob(self.action_placeholder)         # TODO 
     #######################################################
     #########          END YOUR CODE.          ############
