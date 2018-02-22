@@ -54,7 +54,7 @@ def build_mlp(
     for i in range(0, n_layers):
       hidden_out = tf.contrib.layers.fully_connected(hidden_out, size)
     output = tf.contrib.layers.fully_connected(hidden_out, output_size, activation_fn=output_activation)
-    return output # TODO
+    return output
   #######################################################
   #########          END YOUR CODE.          ############
 
@@ -116,12 +116,12 @@ class PG(object):
     #########   YOUR CODE HERE - 8-12 lines.   ############
     self.observation_placeholder = tf.placeholder(tf.float32, [None, self.observation_dim])
     if self.discrete:
-      self.action_placeholder = tf.placeholder(tf.int32, [None]) # TODO
+      self.action_placeholder = tf.placeholder(tf.int32, [None])
     else:
-      self.action_placeholder = tf.placeholder(tf.float32, [None, self.action_dim])# TODO
+      self.action_placeholder = tf.placeholder(tf.float32, [None, self.action_dim])
   
     # Define a placeholder for advantages
-    self.advantage_placeholder = tf.placeholder(tf.float32, [None, 1]) # TODO
+    self.advantage_placeholder = tf.placeholder(tf.float32, [None, 1])
     #######################################################
     #########          END YOUR CODE.          ############
   
@@ -170,16 +170,16 @@ class PG(object):
     #########   YOUR CODE HERE - 5-10 lines.   ############
   
     if self.discrete:
-      action_logits = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)        # TODO 
-      self.sampled_action = tf.squeeze(tf.multinomial(action_logits, 1), [1]) # TODO 
-      self.logprob = -tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.action_placeholder, logits=action_logits)          # TODO 
+      action_logits = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)
+      self.sampled_action = tf.squeeze(tf.multinomial(action_logits, 1), [1])
+      self.logprob = -tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.action_placeholder, logits=action_logits)
     else:
-      action_means = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)        # TODO 
-      log_std = tf.Variable(0.0, name='log_std')             # TODO 
-      self.sampled_action = tf.random_normal(tf.shape(action_means), stddev=tf.exp(log_std)) + action_means # TODO 
+      action_means = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)
+      log_std = tf.Variable(0.0, name='log_std')
+      self.sampled_action = tf.random_normal(tf.shape(action_means), stddev=tf.exp(log_std)) + action_means 
       dist = tf.contrib.distributions.MultivariateNormalDiag(action_means, scale_identity_multiplier=tf.exp(log_std))
       #self.sampled_action = dist.sample(tf.shape(action_means.shape[0], self.action_dim))
-      self.logprob = dist.log_prob(self.action_placeholder)         # TODO 
+      self.logprob = dist.log_prob(self.action_placeholder)
     #######################################################
     #########          END YOUR CODE.          ############
             
@@ -220,7 +220,7 @@ class PG(object):
     ######################################################
     #########   YOUR CODE HERE - 1-2 lines.   ############
     opt = tf.train.AdamOptimizer(self.lr)
-    self.train_op = opt.minimize(self.loss) # TODO
+    self.train_op = opt.minimize(self.loss)
     #######################################################
     #########          END YOUR CODE.          ############
   
