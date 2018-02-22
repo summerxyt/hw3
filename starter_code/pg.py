@@ -121,7 +121,7 @@ class PG(object):
       self.action_placeholder = tf.placeholder(tf.float32, [None, self.action_dim])# TODO
   
     # Define a placeholder for advantages
-    self.advantage_placeholder = tf.placeholder(tf.float32, [None]) # TODO
+    self.advantage_placeholder = tf.placeholder(tf.float32, [None, 1]) # TODO
     #######################################################
     #########          END YOUR CODE.          ############
   
@@ -177,7 +177,7 @@ class PG(object):
       action_means = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)        # TODO 
       log_std = tf.Variable(0.0, name='log_std')             # TODO 
       self.sampled_action = tf.random_normal(tf.shape(action_means), stddev=tf.exp(log_std)) + action_means # TODO 
-      dist = tf.contrib.distributions.MultivariatenormalDiag(action_means, log_std)
+      dist = tf.contrib.distributions.MultivariateNormalDiag(action_means, scale_identity_multiplier=log_std)
       self.logprob = dist.log_prob(self.action_placeholder)         # TODO 
     #######################################################
     #########          END YOUR CODE.          ############
@@ -202,7 +202,10 @@ class PG(object):
 
     ######################################################
     #########   YOUR CODE HERE - 1-2 lines.   ############
-    self.loss = -tf.reduce_sum(self.logprob * self.advantage_placeholder)
+    #print (self.logprob*self.advantage_placeholder).shape
+    #print (self.logprob*tf.squeeze(self.advantage_placeholder)).shape
+    
+    self.loss = -tf.reduce_sum(self.logprob * tf.squeeze(self.advantage_placeholder))
     #######################################################
     #########          END YOUR CODE.          ############
   
@@ -440,8 +443,8 @@ class PG(object):
       path_returns = []
       for reward in reversed(rewards):
         g = g*config.gamma + reward
-        #path_returns.append([g])
-        path_returns.append(g)
+        path_returns.append([g])
+        #path_returns.append(g)
       path_returns.reverse()
       #######################################################
       #########          END YOUR CODE.          ############
