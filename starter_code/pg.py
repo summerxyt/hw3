@@ -171,7 +171,7 @@ class PG(object):
   
     if self.discrete:
       action_logits = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)        # TODO 
-      self.sampled_action = tf.squeeze(tf.multinomial(action_logits, 1)) # TODO 
+      self.sampled_action = tf.squeeze(tf.multinomial(action_logits, 1), [1]) # TODO 
       self.logprob = -tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.action_placeholder, logits=action_logits)          # TODO 
     else:
       action_means = build_mlp(self.observation_placeholder, self.action_dim, scope=scope)        # TODO 
@@ -243,11 +243,11 @@ class PG(object):
     """
     ######################################################
     #########   YOUR CODE HERE - 4-8 lines.   ############
-    self.baseline = build_mlp(self.observation_placeholder, 1, scope=scope)        # TODO 
-    self.baseline_target_placeholder = tf.placeholder(tf.float32, [None])# TODO
+    self.baseline = build_mlp(self.observation_placeholder, 1, scope=scope) 
+    self.baseline_target_placeholder = tf.placeholder(tf.float32, [None, 1])
     self.baseline_loss = tf.losses.mean_squared_error(self.baseline_target_placeholder, self.baseline)
     opt = tf.train.AdamOptimizer(self.lr)
-    self.update_baseline_op = opt.minimize(self.baseline_loss)  # TODO
+    self.update_baseline_op = opt.minimize(self.baseline_loss)
     #######################################################
     #########          END YOUR CODE.          ############
   
@@ -440,6 +440,7 @@ class PG(object):
       path_returns = []
       for reward in reversed(rewards):
         g = g*config.gamma + reward
+        #path_returns.append([g])
         path_returns.append(g)
       path_returns.reverse()
       #######################################################
@@ -480,11 +481,9 @@ class PG(object):
     if self.config.use_baseline:
       baseline = self.sess.run(self.baseline, feed_dict={self.observation_placeholder:observations})
       adv -= baseline
-      # TODO
     if self.config.normalize_advantage:
       mu, std = np.mean(adv), np.std(adv)
       adv = (adv - mu) / std
-      # TODO
     #######################################################
     #########          END YOUR CODE.          ############
     return adv
@@ -500,7 +499,6 @@ class PG(object):
     #######################################################
     #########   YOUR CODE HERE - 1-5 lines.   ############
     self.sess.run(self.update_baseline_op, feed_dict={self.observation_placeholder:observations, self.baseline_target_placeholder:returns})
-    pass # TODO
     #######################################################
     #########          END YOUR CODE.          ############
   
