@@ -15,6 +15,8 @@ from utils.general import get_logger, Progbar, export_plot
 from config import config
 #import logz
 
+import pandas as pd
+import trading_env
 
 def build_mlp(
           mlp_input, 
@@ -90,7 +92,8 @@ class PG(object):
   
     # discrete action space or continuous action space
     self.discrete = isinstance(env.action_space, gym.spaces.Discrete)
-    self.observation_dim = self.env.observation_space.shape[0]
+    #self.observation_dim = self.env.observation_space.shape[0]
+    self.observation_dim = 200
     self.action_dim = self.env.action_space.n if self.discrete else self.env.action_space.shape[0]
   
     self.lr = self.config.learning_rate
@@ -392,9 +395,12 @@ class PG(object):
       episode_reward = 0
   
       for step in range(self.config.max_ep_len):
-        states.append(state)
+        states.append(state.flatten())
         action = self.sess.run(self.sampled_action, feed_dict={self.observation_placeholder : states[-1][None]})[0]
         state, reward, done, info = env.step(action)
+        print reward, action, done
+        #print state
+        #print reward, action
         actions.append(action)
         rewards.append(reward)
         episode_reward += reward
@@ -577,6 +583,7 @@ class PG(object):
      
   
   def record(self):
+     return 
      """
      Re create an env and record a video for one episode
      """
@@ -601,7 +608,13 @@ class PG(object):
       self.record()
           
 if __name__ == '__main__':
-    env = gym.make(config.env_name)
+    df = pd.read_csv('../../bitgym/dataset/btc_indexed2.csv')
+    env = trading_env.make(env_id='training_v1', obs_data_len=50, step_len=1,
+                           df=df, fee=0.003, max_position=5, deal_col_name='close',
+                           return_transaction=False, sample_days=7,
+                           feature_names=['open', 'high', 'low', 'close'])
+
+    env.reset()
     # train model
     model = PG(env, config)
     model.run()
