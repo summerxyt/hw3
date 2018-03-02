@@ -398,7 +398,7 @@ class PG(object):
         states.append(state.flatten())
         action = self.sess.run(self.sampled_action, feed_dict={self.observation_placeholder : states[-1][None]})[0]
         state, reward, done, info = env.step(action)
-        print reward, action, done
+        #print reward, action, done
         #print state
         #print reward, action
         actions.append(action)

@@ -29,8 +29,8 @@ class config():
     learning_rate = 3e-2
     gamma              = 1.0 # the discount factor
     #gamma              = 0.9 # the discount factor
-    use_baseline = False
-    normalize_advantage=False
+    use_baseline = True
+    normalize_advantage= True
     # parameters for the policy and baseline models
     n_layers = 3
     layer_size = 64
