@@ -65,7 +65,7 @@ class PG(object):
   """
   Abstract Class for implementing a Policy Gradient Based Algorithm
   """
-  def __init__(self, env, config, logger=None):
+  def __init__(self, env, config, test_env=None, logger=None):
     """
     Initialize Policy Gradient Class
   
@@ -89,11 +89,15 @@ class PG(object):
     if logger is None:
       self.logger = get_logger(config.log_path)
     self.env = env
+    if test_env is not None:
+      self.test_env = test_env
+    else:
+      self.test_env = env
   
     # discrete action space or continuous action space
     self.discrete = isinstance(env.action_space, gym.spaces.Discrete)
     #self.observation_dim = self.env.observation_space.shape[0]
-    self.observation_dim = 200
+    self.observation_dim = 13*50
     self.action_dim = self.env.action_space.n if self.discrete else self.env.action_space.shape[0]
   
     self.lr = self.config.learning_rate
@@ -391,20 +395,23 @@ class PG(object):
   
     while (num_episodes or t < self.config.batch_size):
       state = env.reset()
+      state[0][0:4] = np.log(state[0][0:4])
       states, actions, rewards = [], [], []
       episode_reward = 0
-  
+ 
+      print t 
+      t += 1
       for step in range(self.config.max_ep_len):
         states.append(state.flatten())
         action = self.sess.run(self.sampled_action, feed_dict={self.observation_placeholder : states[-1][None]})[0]
         state, reward, done, info = env.step(action)
+        state[0][0:4] = np.log(state[0][0:4])
         #print reward, action, done
         #print state
         #print reward, action
         actions.append(action)
         rewards.append(reward)
         episode_reward += reward
-        t += 1
         if (done or step == self.config.max_ep_len-1):
           episode_rewards.append(episode_reward)  
           break
@@ -414,6 +421,8 @@ class PG(object):
       path = {"observation" : np.array(states), 
                       "reward" : np.array(rewards), 
                       "action" : np.array(actions)}
+      if np.count_nonzero(path["action"]) == 0:
+        path["reward"][-1] = -1.0
       paths.append(path)
       episode += 1
       if num_episodes and episode >= num_episodes:
@@ -493,6 +502,8 @@ class PG(object):
       adv -= baseline
     if self.config.normalize_advantage:
       mu, std = np.mean(adv), np.std(adv)
+      if std == 0.0:
+        std = 1.0
       adv = (adv - mu) / std
     #######################################################
     #########          END YOUR CODE.          ############
@@ -555,6 +566,7 @@ class PG(object):
       # compute reward statistics for this batch and log
       avg_reward = np.mean(total_rewards)
       sigma_reward = np.sqrt(np.var(total_rewards) / len(total_rewards))
+      print total_rewards
       msg = "Average reward: {:04.2f} +/- {:04.2f}".format(avg_reward, sigma_reward)
       self.logger.info(msg)
   
@@ -589,7 +601,7 @@ class PG(object):
      """
      env = gym.make(self.config.env_name)
      env = gym.wrappers.Monitor(env, self.config.record_path, video_callable=lambda x: True, resume=True)
-     self.evaluate(env, 1)
+     self.evaluate(env, 1000)
   
 
   def run(self):
@@ -606,15 +618,25 @@ class PG(object):
     # record one game at the end
     if self.config.record:
       self.record()
+
+    self.logger.info("here")
+    self.evaluate(self.test_env, 1)
           
 if __name__ == '__main__':
     df = pd.read_csv('../../bitgym/dataset/btc_indexed2.csv')
     env = trading_env.make(env_id='training_v1', obs_data_len=50, step_len=1,
                            df=df, fee=0.003, max_position=5, deal_col_name='close',
-                           return_transaction=False, sample_days=7,
-                           feature_names=['open', 'high', 'low', 'close'])
+                           return_transaction=True, sample_days=30, normalize_reward = True,
+                           feature_names=['open', 'high', 'low', 'close', 'volume'])
+    df2 = pd.read_csv('../../bitgym/dataset/btc_indexed2.csv')
+    env2 = trading_env.make(env_id='training_v1', obs_data_len=50, step_len=1,
+                           df=df, fee=0.003, max_position=5, deal_col_name='close',
+                           return_transaction=True, sample_days=30, normalize_reward = False,
+                           feature_names=['open', 'high', 'low', 'close', 'volume'])
+
 
     env.reset()
+    #test_env.reset()
     # train model
-    model = PG(env, config)
+    model = PG(env, config, env2)
     model.run()
